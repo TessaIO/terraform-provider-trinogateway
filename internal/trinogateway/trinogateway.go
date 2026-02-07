@@ -1,25 +1,25 @@
-package backend
+package trinogateway
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/TessaIO/terraform-provider-trino-gateway/internal/client"
+	"github.com/TessaIO/terraform-provider-trinogateway/internal/client"
 )
 
 // BackendService provides methods for managing Trino Gateway backends
-type BackendService struct {
+type TrinoGateway struct {
 	client *client.Client
 }
 
 // NewBackendService creates a new BackendService
-func NewBackendService(client *client.Client) *BackendService {
-	return &BackendService{client: client}
+func NewTrinoGatewayService(client *client.Client) *TrinoGateway {
+	return &TrinoGateway{client: client}
 }
 
 // ListBackends retrieves all backends
-func (s *BackendService) ListBackends(ctx context.Context) ([]Backend, error) {
-	resp, err := s.client.Get(ctx, "/entity/GATEWAY_BACKEND")
+func (t *TrinoGateway) ListBackends(ctx context.Context) ([]Backend, error) {
+	resp, err := t.client.Get(ctx, "/entity/GATEWAY_BACKEND")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list backends: %w", err)
 	}
@@ -33,9 +33,9 @@ func (s *BackendService) ListBackends(ctx context.Context) ([]Backend, error) {
 }
 
 // GetBackend retrieves a specific backend by name
-func (s *BackendService) GetBackend(ctx context.Context, name string) (*Backend, error) {
+func (t *TrinoGateway) GetBackend(ctx context.Context, name string) (*Backend, error) {
 	path := fmt.Sprintf("/entity/GATEWAY_BACKEND/%s", name)
-	resp, err := s.client.Get(ctx, path)
+	resp, err := t.client.Get(ctx, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get backend %s: %w", name, err)
 	}
@@ -49,8 +49,8 @@ func (s *BackendService) GetBackend(ctx context.Context, name string) (*Backend,
 }
 
 // CreateBackend creates a new backend
-func (s *BackendService) CreateBackend(ctx context.Context, req CreateBackendRequest) (*Backend, error) {
-	resp, err := s.client.Post(ctx, "/entity/GATEWAY_BACKEND", req)
+func (t *TrinoGateway) CreateBackend(ctx context.Context, req CreateBackendRequest) (*Backend, error) {
+	resp, err := t.client.Post(ctx, "/entity/GATEWAY_BACKEND", req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create backend: %w", err)
 	}
@@ -64,9 +64,9 @@ func (s *BackendService) CreateBackend(ctx context.Context, req CreateBackendReq
 }
 
 // UpdateBackend updates an existing backend
-func (s *BackendService) UpdateBackend(ctx context.Context, name string, req UpdateBackendRequest) (*Backend, error) {
+func (t *TrinoGateway) UpdateBackend(ctx context.Context, name string, req UpdateBackendRequest) (*Backend, error) {
 	path := fmt.Sprintf("/entity/GATEWAY_BACKEND/%s", name)
-	resp, err := s.client.Put(ctx, path, req)
+	resp, err := t.client.Put(ctx, path, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update backend %s: %w", name, err)
 	}
@@ -80,9 +80,9 @@ func (s *BackendService) UpdateBackend(ctx context.Context, name string, req Upd
 }
 
 // DeleteBackend deletes a backend
-func (s *BackendService) DeleteBackend(ctx context.Context, name string) error {
+func (t *TrinoGateway) DeleteBackend(ctx context.Context, name string) error {
 	path := fmt.Sprintf("/entity/GATEWAY_BACKEND/%s", name)
-	_, err := s.client.Delete(ctx, path)
+	_, err := t.client.Delete(ctx, path)
 	if err != nil {
 		return fmt.Errorf("failed to delete backend %s: %w", name, err)
 	}
@@ -91,24 +91,24 @@ func (s *BackendService) DeleteBackend(ctx context.Context, name string) error {
 }
 
 // ActivateBackend activates a backend
-func (s *BackendService) ActivateBackend(ctx context.Context, name string) error {
+func (t *TrinoGateway) ActivateBackend(ctx context.Context, name string) error {
 	active := true
 	req := UpdateBackendRequest{Active: &active}
-	_, err := s.UpdateBackend(ctx, name, req)
+	_, err := t.UpdateBackend(ctx, name, req)
 	return err
 }
 
 // DeactivateBackend deactivates a backend
-func (s *BackendService) DeactivateBackend(ctx context.Context, name string) error {
+func (t *TrinoGateway) DeactivateBackend(ctx context.Context, name string) error {
 	active := false
 	req := UpdateBackendRequest{Active: &active}
-	_, err := s.UpdateBackend(ctx, name, req)
+	_, err := t.UpdateBackend(ctx, name, req)
 	return err
 }
 
 // GetBackendStates retrieves the state of all backends
-func (s *BackendService) GetBackendStates(ctx context.Context) ([]BackendState, error) {
-	resp, err := s.client.Get(ctx, "/gateway/backend/state")
+func (t *TrinoGateway) GetBackendStates(ctx context.Context) ([]BackendState, error) {
+	resp, err := t.client.Get(ctx, "/gateway/backend/state")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get backend states: %w", err)
 	}

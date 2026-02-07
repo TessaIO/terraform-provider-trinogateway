@@ -17,8 +17,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/TessaIO/terraform-provider-trino-gateway/internal/backend"
-	"github.com/TessaIO/terraform-provider-trino-gateway/internal/client"
+	"github.com/TessaIO/terraform-provider-trinogateway/internal/client"
+	"github.com/TessaIO/terraform-provider-trinogateway/internal/trinogateway"
 )
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
@@ -43,7 +43,7 @@ type TrinoGatewayProviderModel struct {
 }
 
 func (p *TrinoGatewayProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "trino_gateway"
+	resp.TypeName = "trinogateway"
 	resp.Version = p.version
 }
 
@@ -81,7 +81,7 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 			path.Root("endpoint"),
 			"Unknown Trino Gateway API Endpoint",
 			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway endpoint. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINO_GATEWAY_ENDPOINT environment variable.",
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINOGATEWAY_ENDPOINT environment variable.",
 		)
 	}
 
@@ -90,7 +90,7 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 			path.Root("username"),
 			"Unknown Trino Gateway API Username",
 			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway username. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINO_GATEWAY_USERNAME environment variable.",
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINOGATEWAY_USERNAME environment variable.",
 		)
 	}
 
@@ -99,7 +99,7 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 			path.Root("password"),
 			"Unknown Trino Gateway API Password",
 			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway password. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINO_GATEWAY_PASSWORD environment variable.",
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINOGATEWAY_PASSWORD environment variable.",
 		)
 	}
 
@@ -109,9 +109,9 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 
 	// Default values to environment variables, but override
 	// with Terraform configuration value if set.
-	endpoint := os.Getenv("TRINO_GATEWAY_ENDPOINT")
-	username := os.Getenv("TRINO_GATEWAY_USERNAME")
-	password := os.Getenv("TRINO_GATEWAY_PASSWORD")
+	endpoint := os.Getenv("TRINOGATEWAY_ENDPOINT")
+	username := os.Getenv("TRINOGATEWAY_USERNAME")
+	password := os.Getenv("TRINOGATEWAY_PASSWORD")
 
 	if !config.Endpoint.IsNull() {
 		endpoint = config.Endpoint.ValueString()
@@ -132,7 +132,7 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 			path.Root("endpoint"),
 			"Missing Trino Gateway API Host",
 			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API endpoint. "+
-				"Set the host value in the configuration or use the TRINO_GATEWAY_HOST environment variable. "+
+				"Set the host value in the configuration or use the TRINOGATEWAY_HOST environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -142,7 +142,7 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 			path.Root("username"),
 			"Missing Trino Gateway API Username",
 			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API username. "+
-				"Set the username value in the configuration or use the TRINO_GATEWAY_USERNAME environment variable. "+
+				"Set the username value in the configuration or use the TRINOGATEWAY_USERNAME environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -152,7 +152,7 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 			path.Root("password"),
 			"Missing Trino Gateway API Password",
 			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API password. "+
-				"Set the password value in the configuration or use the TRINO_GATEWAY_PASSWORD environment variable. "+
+				"Set the password value in the configuration or use the TRINOGATEWAY_PASSWORD environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -173,9 +173,9 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 		return
 	}
 
-	backendService := backend.NewBackendService(httpClient)
-	resp.ResourceData = backendService
-	resp.DataSourceData = backendService
+	trinoGatewayService := trinogateway.NewTrinoGatewayService(httpClient)
+	resp.ResourceData = trinoGatewayService
+	resp.DataSourceData = trinoGatewayService
 }
 
 func (p *TrinoGatewayProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -192,7 +192,7 @@ func (p *TrinoGatewayProvider) EphemeralResources(ctx context.Context) []func() 
 
 func (p *TrinoGatewayProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
+		NewClustersDataSource,
 	}
 }
 

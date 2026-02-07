@@ -1,14 +1,20 @@
 terraform {
   required_providers {
-    trino-gateway = {
-      source  = "trino-gateway"
+    trinogateway = {
+      source  = "trinogateway"
       version = "1.0.0"
     }
   }
 }
 
-provider "trino-gateway" {
-  endpoint = "localhost:8080"
+provider "trinogateway" {
+  endpoint = "http://localhost:8080"
+  username = "admin"
+  password = "admin"
 }
 
-# data "trino_gateway_cluster" "main" {}
+data "trinogateway_cluster" "all" {}
+
+output "clusters" {
+  value = data.trinogateway_cluster.all
+}

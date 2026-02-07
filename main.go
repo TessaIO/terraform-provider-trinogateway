@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
-	"github.com/TessaIO/terraform-provider-trino-gateway/internal/provider"
+	"github.com/TessaIO/terraform-provider-trinogateway/internal/provider"
 )
 
 var (
@@ -29,7 +29,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/hashicorp/trino-gateway",
+		Address: "registry.terraform.io/hashicorp/trinogateway",
 		Debug:   debug,
 	}
 

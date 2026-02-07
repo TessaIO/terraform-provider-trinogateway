@@ -2,6 +2,11 @@ serverConfig:
     node.environment: test
     http-server.http.port: 8080
 
+presetUsers:
+  admin:
+    password: admin
+    privileges: ADMIN_USER
+
 dataStore:
   #This stores the URLs of backend Trino servers and query history
   jdbcUrl: jdbc:postgresql://localhost:5432/gateway

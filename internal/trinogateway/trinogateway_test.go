@@ -1,4 +1,4 @@
-package backend
+package trinogateway
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TessaIO/terraform-provider-trino-gateway/internal/client"
+	"github.com/TessaIO/terraform-provider-trinogateway/internal/client"
 )
 
 func TestBackendService(t *testing.T) {
