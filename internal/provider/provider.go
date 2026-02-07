@@ -5,16 +5,20 @@ package provider
 
 import (
 	"context"
-	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/TessaIO/terraform-provider-trino-gateway/internal/backend"
+	"github.com/TessaIO/terraform-provider-trino-gateway/internal/client"
 )
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
@@ -57,27 +61,121 @@ func (p *TrinoGatewayProvider) Schema(ctx context.Context, req provider.SchemaRe
 			"password": schema.StringAttribute{
 				MarkdownDescription: "password to access Trino gateway",
 				Optional:            true,
+				Sensitive:           true,
 			},
 		},
 	}
 }
 
 func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data TrinoGatewayProvider
+	var config TrinoGatewayProviderModel
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	if config.Endpoint.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("endpoint"),
+			"Unknown Trino Gateway API Endpoint",
+			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway endpoint. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINO_GATEWAY_ENDPOINT environment variable.",
+		)
+	}
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	if config.Username.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Unknown Trino Gateway API Username",
+			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway username. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINO_GATEWAY_USERNAME environment variable.",
+		)
+	}
+
+	if config.Password.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Unknown Trino Gateway API Password",
+			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway password. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINO_GATEWAY_PASSWORD environment variable.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Default values to environment variables, but override
+	// with Terraform configuration value if set.
+	endpoint := os.Getenv("TRINO_GATEWAY_ENDPOINT")
+	username := os.Getenv("TRINO_GATEWAY_USERNAME")
+	password := os.Getenv("TRINO_GATEWAY_PASSWORD")
+
+	if !config.Endpoint.IsNull() {
+		endpoint = config.Endpoint.ValueString()
+	}
+
+	if !config.Username.IsNull() {
+		username = config.Username.ValueString()
+	}
+
+	if !config.Password.IsNull() {
+		password = config.Password.ValueString()
+	}
+
+	// If any of the expected configurations are missing, return
+	// errors with provider-specific guidance.
+	if endpoint == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("endpoint"),
+			"Missing Trino Gateway API Host",
+			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API endpoint. "+
+				"Set the host value in the configuration or use the TRINO_GATEWAY_HOST environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if username == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Missing Trino Gateway API Username",
+			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API username. "+
+				"Set the username value in the configuration or use the TRINO_GATEWAY_USERNAME environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if password == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Missing Trino Gateway API Password",
+			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API password. "+
+				"Set the password value in the configuration or use the TRINO_GATEWAY_PASSWORD environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	httpClient, err := client.NewClient(endpoint, client.WithAuth(username, password))
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to create HTTP Client",
+			"An unexpected error occurred when creating the HTTP client. "+
+				"If the error is not clear, please contact the provider developers.\n\n"+
+				"HTTP Client Error: "+err.Error(),
+		)
+
+		return
+	}
+
+	backendService := backend.NewBackendService(httpClient)
+	resp.ResourceData = backendService
+	resp.DataSourceData = backendService
 }
 
 func (p *TrinoGatewayProvider) Resources(ctx context.Context) []func() resource.Resource {
