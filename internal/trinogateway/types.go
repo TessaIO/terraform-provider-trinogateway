@@ -57,7 +57,9 @@ type CreateBackendRequest struct {
 
 // UpdateBackendRequest represents the request to update a backend
 type UpdateBackendRequest struct {
+	Name         string  `json:"name,omitempty"`
 	Active       *bool   `json:"active,omitempty"`
 	RoutingGroup *string `json:"routingGroup,omitempty"`
 	ExternalURL  *string `json:"externalUrl,omitempty"`
+	ProxyTo      *string `json:"proxyTo,omitempty"`
 }

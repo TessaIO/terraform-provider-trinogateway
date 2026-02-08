@@ -34,7 +34,7 @@ func (t *TrinoGateway) ListBackends(ctx context.Context) ([]Backend, error) {
 
 // GetBackend retrieves a specific backend by name
 func (t *TrinoGateway) GetBackend(ctx context.Context, name string) (*Backend, error) {
-	path := fmt.Sprintf("/entity/GATEWAY_BACKEND/%s", name)
+	path := fmt.Sprintf("/api/public/backends/%s", name)
 	resp, err := t.client.Get(ctx, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get backend %s: %w", name, err)
@@ -68,25 +68,20 @@ func (t *TrinoGateway) CreateBackend(ctx context.Context, req CreateBackendReque
 }
 
 // UpdateBackend updates an existing backend
-func (t *TrinoGateway) UpdateBackend(ctx context.Context, name string, req UpdateBackendRequest) (*Backend, error) {
-	path := fmt.Sprintf("/entity/GATEWAY_BACKEND/%s", name)
-	resp, err := t.client.Put(ctx, path, req)
+func (t *TrinoGateway) UpdateBackend(ctx context.Context, req UpdateBackendRequest) error {
+	path := fmt.Sprintf("/entity?entityType=GATEWAY_BACKEND")
+	_, err := t.client.Post(ctx, path, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update backend %s: %w", name, err)
+		return fmt.Errorf("failed to update backend %s: %w", req.Name, err)
 	}
 
-	var backend Backend
-	if err := client.DecodeResponse(resp, &backend); err != nil {
-		return nil, err
-	}
-
-	return &backend, nil
+	return nil
 }
 
 // DeleteBackend deletes a backend
 func (t *TrinoGateway) DeleteBackend(ctx context.Context, name string) error {
-	path := fmt.Sprintf("/entity/GATEWAY_BACKEND/%s", name)
-	_, err := t.client.Delete(ctx, path)
+	path := "/gateway/backend/modify/delete"
+	_, err := t.client.Post(ctx, path, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete backend %s: %w", name, err)
 	}
@@ -97,16 +92,16 @@ func (t *TrinoGateway) DeleteBackend(ctx context.Context, name string) error {
 // ActivateBackend activates a backend
 func (t *TrinoGateway) ActivateBackend(ctx context.Context, name string) error {
 	active := true
-	req := UpdateBackendRequest{Active: &active}
-	_, err := t.UpdateBackend(ctx, name, req)
+	req := UpdateBackendRequest{Active: &active, Name: name}
+	err := t.UpdateBackend(ctx, req)
 	return err
 }
 
 // DeactivateBackend deactivates a backend
 func (t *TrinoGateway) DeactivateBackend(ctx context.Context, name string) error {
 	active := false
-	req := UpdateBackendRequest{Active: &active}
-	_, err := t.UpdateBackend(ctx, name, req)
+	req := UpdateBackendRequest{Active: &active, Name: name}
+	err := t.UpdateBackend(ctx, req)
 	return err
 }
 

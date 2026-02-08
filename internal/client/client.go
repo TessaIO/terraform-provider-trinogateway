@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -85,11 +86,16 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	// Prepare request body
 	var bodyReader io.Reader
 	if body != nil {
-		jsonData, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		// Check if it's already a string. Sadly for Delete backend requests the body is just a string...
+		if str, ok := body.(string); ok {
+			bodyReader = strings.NewReader(str)
+		} else {
+			jsonData, err := json.Marshal(body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal request body: %w", err)
+			}
+			bodyReader = bytes.NewBuffer(jsonData)
 		}
-		bodyReader = bytes.NewBuffer(jsonData)
 	}
 
 	// Create request

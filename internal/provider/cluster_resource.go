@@ -178,8 +178,81 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Retrieve values from plan
+	var plan clusterResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "Backend will be updated", map[string]any{"backendName": plan.Name.String()})
+
+	// Generate API request body from plan
+	backend := trinogateway.UpdateBackendRequest{
+		Name:         plan.Name.ValueString(),
+		ProxyTo:      plan.ProxyTo.ValueStringPointer(),
+		Active:       plan.Active.ValueBoolPointer(),
+		RoutingGroup: plan.RoutingGroup.ValueStringPointer(),
+		ExternalURL:  plan.ExternalURL.ValueStringPointer(),
+	}
+
+	// Update new backend
+	err := r.trinoGateway.UpdateBackend(ctx, backend)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating backend",
+			"Could not create backend, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	tflog.Debug(ctx, "Backend updated successfully in Trino gateway", map[string]any{"success": true, "updatedBackend": backend})
+
+	// Fetch updated Backend
+	updatedBackend, err := r.trinoGateway.GetBackend(ctx, backend.Name)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading Updated Backend",
+			"Could not read TrinoGateway Backend name "+plan.Name.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	// Map response body to schema and populate Computed attribute values
+	plan.Name = types.StringValue(updatedBackend.Name)
+	plan.ProxyTo = types.StringValue(updatedBackend.ProxyTo)
+	plan.Active = types.BoolValue(updatedBackend.Active)
+	plan.RoutingGroup = types.StringValue(updatedBackend.RoutingGroup)
+	plan.ExternalURL = types.StringValue(updatedBackend.ExternalURL)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "cluster read successfully and save into the state from TrinoGateway API", map[string]any{"success": true})
 }
 
-// Delete deletes the resource and removes the Terraform state on success.
+// Delete deletes the cluster resource and removes the Terraform state on success.
 func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	// Retrieve values from plan
+	var state *clusterResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Backend will be deleted %s", state.Name.ValueString()), map[string]any{"backendName": state.Active.ValueBool()})
+
+	// Delete existing order
+	if err := r.trinoGateway.DeleteBackend(ctx, state.Name.ValueString()); err != nil {
+		resp.Diagnostics.AddError(
+			"Error Deleting TrinoGateway Backend",
+			"Could not delete backend, unexpected error: "+err.Error(),
+		)
+		return
+
+	}
+
+	tflog.Debug(ctx, "cluster deleted successfully from TrinoGateway API", map[string]any{"success": true})
 }
