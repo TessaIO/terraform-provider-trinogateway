@@ -50,14 +50,18 @@ func (t *TrinoGateway) GetBackend(ctx context.Context, name string) (*Backend, e
 
 // CreateBackend creates a new backend
 func (t *TrinoGateway) CreateBackend(ctx context.Context, req CreateBackendRequest) (*Backend, error) {
-	resp, err := t.client.Post(ctx, "/entity/GATEWAY_BACKEND", req)
+	_, err := t.client.Post(ctx, "/entity?entityType=GATEWAY_BACKEND", req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create backend: %w", err)
 	}
 
-	var backend Backend
-	if err := client.DecodeResponse(resp, &backend); err != nil {
-		return nil, err
+	// API Response from the Gateway doesn't return anything so we construct the object here
+	backend := Backend{
+		Name:         req.Name,
+		RoutingGroup: req.RoutingGroup,
+		Active:       req.Active,
+		ProxyTo:      req.ProxyTo,
+		ExternalURL:  req.ExternalURL,
 	}
 
 	return &backend, nil

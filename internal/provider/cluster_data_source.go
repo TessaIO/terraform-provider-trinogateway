@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/TessaIO/terraform-provider-trinogateway/internal/trinogateway"
 )
@@ -72,7 +73,7 @@ func (d *clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *clusterDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *clusterDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -90,6 +91,8 @@ func (d *clusterDataSource) Configure(_ context.Context, req datasource.Configur
 	}
 
 	d.trinoGateway = client
+
+	tflog.Debug(ctx, "Assigned TrinoGateway Client to the datasource", map[string]any{"success": true})
 }
 
 func (d *clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -104,6 +107,8 @@ func (d *clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
+	tflog.Debug(ctx, "Successfully fetched all trino gateway active clusters", map[string]any{"clusters": clusters})
+
 	// Map response body to model
 	for _, cluster := range clusters {
 		clusterState := clusterModel{
@@ -117,6 +122,7 @@ func (d *clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		state.Clusters = append(state.Clusters, clusterState)
 	}
 
+	tflog.Debug(ctx, "Successfully constructed the clusters state", map[string]any{"clusters": state.Clusters})
 	// Set state
 	diags := resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

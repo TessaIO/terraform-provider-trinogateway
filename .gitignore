@@ -37,3 +37,4 @@ website/vendor
 # Local jar files
 local/*.jar
 local/*.out
+local/var/

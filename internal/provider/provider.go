@@ -7,15 +7,13 @@ import (
 	"context"
 	"os"
 
-	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
-	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/TessaIO/terraform-provider-trinogateway/internal/client"
 	"github.com/TessaIO/terraform-provider-trinogateway/internal/trinogateway"
@@ -23,9 +21,6 @@ import (
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
 var _ provider.Provider = &TrinoGatewayProvider{}
-var _ provider.ProviderWithFunctions = &TrinoGatewayProvider{}
-var _ provider.ProviderWithEphemeralResources = &TrinoGatewayProvider{}
-var _ provider.ProviderWithActions = &TrinoGatewayProvider{}
 
 // TrinoGatewayProvider defines the provider implementation.
 type TrinoGatewayProvider struct {
@@ -68,6 +63,7 @@ func (p *TrinoGatewayProvider) Schema(ctx context.Context, req provider.SchemaRe
 }
 
 func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	tflog.Info(ctx, "Configuring Trino-Gateway client")
 	var config TrinoGatewayProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
@@ -161,6 +157,13 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 		return
 	}
 
+	ctx = tflog.SetField(ctx, "trinogateway_endpoint", endpoint)
+	ctx = tflog.SetField(ctx, "trinogateway_username", username)
+	ctx = tflog.SetField(ctx, "trinogateway_password", password)
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "trinogateway_password")
+
+	tflog.Debug(ctx, "Creating trinogateway client")
+
 	httpClient, err := client.NewClient(endpoint, client.WithAuth(username, password))
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -176,35 +179,19 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 	trinoGatewayService := trinogateway.NewTrinoGatewayService(httpClient)
 	resp.ResourceData = trinoGatewayService
 	resp.DataSourceData = trinoGatewayService
+
+	tflog.Info(ctx, "Configured Trino-gateway client", map[string]any{"success": true})
 }
 
 func (p *TrinoGatewayProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
-	}
-}
-
-func (p *TrinoGatewayProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
+		NewClusterResource,
 	}
 }
 
 func (p *TrinoGatewayProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewClustersDataSource,
-	}
-}
-
-func (p *TrinoGatewayProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
-}
-
-func (p *TrinoGatewayProvider) Actions(ctx context.Context) []func() action.Action {
-	return []func() action.Action{
-		NewExampleAction,
 	}
 }
 
