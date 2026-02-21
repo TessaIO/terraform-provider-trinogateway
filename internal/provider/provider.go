@@ -185,13 +185,13 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 
 func (p *TrinoGatewayProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewClusterResource,
+		NewBackendResource,
 	}
 }
 
 func (p *TrinoGatewayProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewClustersDataSource,
+		NewBackendDataSource,
 	}
 }
 

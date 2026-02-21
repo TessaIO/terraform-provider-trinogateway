@@ -13,8 +13,16 @@ provider "trinogateway" {
   password = "admin"
 }
 
-data "trinogateway_cluster" "all" {}
+resource "trinogateway_backend" "this" {
+  name          = "test-cluster2"
+  routing_group = "test"
+  proxy_to      = "http://localhost:8081"
+  active        = "false"
+  external_url  = "http://google.com"
+}
 
-output "clusters" {
-  value = data.trinogateway_cluster.all
+data "trinogateway_backend" "all" {}
+
+output "backends" {
+  value = data.trinogateway_backend.all
 }

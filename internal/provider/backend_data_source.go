@@ -13,17 +13,18 @@ import (
 )
 
 var (
-	_ datasource.DataSource              = &clusterDataSource{}
-	_ datasource.DataSourceWithConfigure = &clusterDataSource{}
+	_ datasource.DataSource              = &backendDataSource{}
+	_ datasource.DataSourceWithConfigure = &backendDataSource{}
+	_ datasource.DataSourceWithConfigure = &backendDataSource{}
 )
 
-// clusterDataSourceModel maps the data source schema data.
-type clusterDataSourceModel struct {
-	Clusters []clusterModel `tfsdk:"clusters"`
+// backendDataSourceModel maps the data source schema data.
+type backendDataSourceModel struct {
+	Clusters []backendModel `tfsdk:"clusters"`
 }
 
-// clusterModel maps Trino cluster schema data.
-type clusterModel struct {
+// backendModel maps Trino backend schema data.
+type backendModel struct {
 	Name         types.String `tfsdk:"name"`
 	ProxyTo      types.String `tfsdk:"proxy_to"`
 	Active       types.Bool   `tfsdk:"active"`
@@ -31,19 +32,19 @@ type clusterModel struct {
 	ExternalURL  types.String `tfsdk:"external_url"`
 }
 
-func NewClustersDataSource() datasource.DataSource {
-	return &clusterDataSource{}
+func NewBackendDataSource() datasource.DataSource {
+	return &backendDataSource{}
 }
 
-type clusterDataSource struct {
+type backendDataSource struct {
 	trinoGateway *trinogateway.TrinoGateway
 }
 
-func (d *clusterDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_cluster"
+func (d *backendDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_backend"
 }
 
-func (d *clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *backendDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"clusters": schema.ListNestedAttribute{
@@ -73,7 +74,7 @@ func (d *clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *clusterDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *backendDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -95,31 +96,31 @@ func (d *clusterDataSource) Configure(ctx context.Context, req datasource.Config
 	tflog.Debug(ctx, "Assigned TrinoGateway Client to the datasource", map[string]any{"success": true})
 }
 
-func (d *clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state clusterDataSourceModel
+func (d *backendDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var state backendDataSourceModel
 
-	clusters, err := d.trinoGateway.ListBackends(ctx)
+	backends, err := d.trinoGateway.ListBackends(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to Read TrinoGateway Active Clusters",
+			"Unable to Read TrinoGateway Active Backends",
 			err.Error(),
 		)
 		return
 	}
 
-	tflog.Debug(ctx, "Successfully fetched all trino gateway active clusters", map[string]any{"clusters": clusters})
+	tflog.Debug(ctx, "Successfully fetched all trino gateway active backends", map[string]any{"clusters": backends})
 
 	// Map response body to model
-	for _, cluster := range clusters {
-		clusterState := clusterModel{
-			Name:         types.StringValue(cluster.Name),
-			ProxyTo:      types.StringValue(cluster.ProxyTo),
-			Active:       types.BoolValue(cluster.Active),
-			RoutingGroup: types.StringValue(cluster.RoutingGroup),
-			ExternalURL:  types.StringValue(cluster.ExternalURL),
+	for _, backend := range backends {
+		backendState := backendModel{
+			Name:         types.StringValue(backend.Name),
+			ProxyTo:      types.StringValue(backend.ProxyTo),
+			Active:       types.BoolValue(backend.Active),
+			RoutingGroup: types.StringValue(backend.RoutingGroup),
+			ExternalURL:  types.StringValue(backend.ExternalURL),
 		}
 
-		state.Clusters = append(state.Clusters, clusterState)
+		state.Clusters = append(state.Clusters, backendState)
 	}
 
 	tflog.Debug(ctx, "Successfully constructed the clusters state", map[string]any{"clusters": state.Clusters})

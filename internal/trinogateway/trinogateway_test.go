@@ -36,7 +36,10 @@ func TestBackendService(t *testing.T) {
 		case r.Method == "GET" && r.URL.Path == "/entity/GATEWAY_BACKEND/backend1":
 			json.NewEncoder(w).Encode(mockBackends[0])
 
-		case r.Method == "POST" && r.URL.Path == "/entity/GATEWAY_BACKEND":
+		case r.Method == "GET" && r.URL.Path == "/api/public/backends/backend1":
+			json.NewEncoder(w).Encode(mockBackends[0])
+
+		case r.Method == "POST" && r.URL.Path == "/entity":
 			var req CreateBackendRequest
 			json.NewDecoder(r.Body).Decode(&req)
 			backend := Backend{
@@ -56,7 +59,7 @@ func TestBackendService(t *testing.T) {
 			}
 			json.NewEncoder(w).Encode(backend)
 
-		case r.Method == "DELETE" && r.URL.Path == "/entity/GATEWAY_BACKEND/backend1":
+		case r.Method == "POST" && r.URL.Path == "/gateway/backend/modify/delete":
 			w.WriteHeader(http.StatusNoContent)
 
 		case r.Method == "GET" && r.URL.Path == "/gateway/backend/state":
@@ -73,7 +76,7 @@ func TestBackendService(t *testing.T) {
 	defer server.Close()
 
 	client, _ := client.NewClient(server.URL)
-	svc := NewBackendService(client)
+	svc := NewTrinoGatewayService(client)
 	ctx := context.Background()
 
 	t.Run("ListBackends", func(t *testing.T) {
@@ -121,12 +124,9 @@ func TestBackendService(t *testing.T) {
 	t.Run("UpdateBackend", func(t *testing.T) {
 		active := false
 		req := UpdateBackendRequest{Active: &active}
-		backend, err := svc.UpdateBackend(ctx, "backend1", req)
+		err := svc.UpdateBackend(ctx, req)
 		if err != nil {
 			t.Fatal(err)
-		}
-		if backend.Active {
-			t.Error("expected backend to be inactive")
 		}
 	})
 

@@ -8,23 +8,27 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/hashicorp/terraform-plugin-testing/echoprovider"
+)
+
+const (
+	// providerConfig is a shared configuration to combine with the actual
+	// test configuration so the TrinoGateway client is properly configured.
+	// It is also possible to use the TRINOGATEWAY_ environment variables instead,
+	// such as updating the Makefile and running the testing through that tool.
+	providerConfig = `
+provider "trinogateway" {
+  endpoint = "http://localhost:8080"
+  username = "admin"
+  password = "admin"
+}
+`
 )
 
 // testAccProtoV6ProviderFactories is used to instantiate a provider during acceptance testing.
 // The factory function is called for each Terraform CLI command to create a provider
 // server that the CLI can connect to and interact with.
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"scaffolding": providerserver.NewProtocol6WithError(New("test")()),
-}
-
-// testAccProtoV6ProviderFactoriesWithEcho includes the echo provider alongside the scaffolding provider.
-// It allows for testing assertions on data returned by an ephemeral resource during Open.
-// The echoprovider is used to arrange tests by echoing ephemeral data into the Terraform state.
-// This lets the data be referenced in test assertions with state checks.
-var testAccProtoV6ProviderFactoriesWithEcho = map[string]func() (tfprotov6.ProviderServer, error){
-	"scaffolding": providerserver.NewProtocol6WithError(New("test")()),
-	"echo":        echoprovider.NewProviderServer(),
+	"trinogateway": providerserver.NewProtocol6WithError(New("test")()),
 }
 
 func testAccPreCheck(t *testing.T) {

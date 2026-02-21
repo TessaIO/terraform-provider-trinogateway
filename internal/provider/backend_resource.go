@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -14,12 +15,13 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &clusterResource{}
-	_ resource.ResourceWithConfigure = &clusterResource{}
+	_ resource.Resource                = &backendResource{}
+	_ resource.ResourceWithConfigure   = &backendResource{}
+	_ resource.ResourceWithImportState = &backendResource{}
 )
 
-// clusterResourceModel maps Trino cluster schema data.
-type clusterResourceModel struct {
+// backendResourceModel maps Trino backend schema data.
+type backendResourceModel struct {
 	Name         types.String `tfsdk:"name"`
 	ProxyTo      types.String `tfsdk:"proxy_to"`
 	Active       types.Bool   `tfsdk:"active"`
@@ -27,23 +29,23 @@ type clusterResourceModel struct {
 	ExternalURL  types.String `tfsdk:"external_url"`
 }
 
-// NewClusterResource is a helper function to simplify the provider implementation.
-func NewClusterResource() resource.Resource {
-	return &clusterResource{}
+// NewBackendResource is a helper function to simplify the provider implementation.
+func NewBackendResource() resource.Resource {
+	return &backendResource{}
 }
 
-// clusterResource is the resource implementation.
-type clusterResource struct {
+// backendResource is the resource implementation.
+type backendResource struct {
 	trinoGateway *trinogateway.TrinoGateway
 }
 
 // Metadata returns the resource type name.
-func (r *clusterResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_cluster"
+func (r *backendResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_backend"
 }
 
 // Schema defines the schema for the resource.
-func (r *clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *backendResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -67,7 +69,7 @@ func (r *clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 }
 
 // Configure adds the provider configured client to the resource.
-func (r *clusterResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *backendResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -90,9 +92,9 @@ func (r *clusterResource) Configure(ctx context.Context, req resource.ConfigureR
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *backendResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
-	var plan clusterResourceModel
+	var plan backendResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -134,25 +136,25 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	tflog.Debug(ctx, "cluster creation successfully saved in the plan state", map[string]any{"success": true})
+	tflog.Debug(ctx, "backend creation successfully saved in the plan state", map[string]any{"success": true})
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *backendResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
-	var state clusterResourceModel
+	var state backendResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Get refreshed cluster value from trino gateway API
+	// Get refreshed backend value from trino gateway API
 	backend, err := r.trinoGateway.GetBackend(ctx, state.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading TrinoGateway Cluster",
-			"Could not read TrinoGateway Cluster Name "+state.Name.ValueString()+": "+err.Error(),
+			"Error Reading TrinoGateway Backend",
+			"Could not read TrinoGateway Backend Name "+state.Name.ValueString()+": "+err.Error(),
 		)
 		return
 	}
@@ -173,13 +175,13 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	tflog.Debug(ctx, "cluster read successfully and save into the state from TrinoGateway API", map[string]any{"success": true})
+	tflog.Debug(ctx, "backend read successfully and save into the state from TrinoGateway API", map[string]any{"success": true})
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *backendResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
-	var plan clusterResourceModel
+	var plan backendResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -230,13 +232,13 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	tflog.Debug(ctx, "cluster read successfully and save into the state from TrinoGateway API", map[string]any{"success": true})
+	tflog.Debug(ctx, "backend read successfully and save into the state from TrinoGateway API", map[string]any{"success": true})
 }
 
-// Delete deletes the cluster resource and removes the Terraform state on success.
-func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+// Delete deletes the backend resource and removes the Terraform state on success.
+func (r *backendResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from plan
-	var state *clusterResourceModel
+	var state *backendResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -254,5 +256,10 @@ func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	}
 
-	tflog.Debug(ctx, "cluster deleted successfully from TrinoGateway API", map[string]any{"success": true})
+	tflog.Debug(ctx, "backend deleted successfully from TrinoGateway API", map[string]any{"success": true})
+}
+
+func (r *backendResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Retrieve import ID and save to id attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }
