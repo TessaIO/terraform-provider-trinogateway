@@ -41,7 +41,7 @@ type backendDataSource struct {
 }
 
 func (d *backendDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_backend"
+	resp.TypeName = req.ProviderTypeName + "_backends"
 }
 
 func (d *backendDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {

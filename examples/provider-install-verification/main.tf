@@ -21,8 +21,8 @@ resource "trinogateway_backend" "this" {
   external_url  = "http://google.com"
 }
 
-data "trinogateway_backend" "all" {}
+data "trinogateway_backends" "all" {}
 
 output "backends" {
-  value = data.trinogateway_backend.all
+  value = data.trinogateway_backends.all
 }

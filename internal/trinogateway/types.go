@@ -9,16 +9,14 @@ type Backend struct {
 	Active       bool   `json:"active"`
 	RoutingGroup string `json:"routingGroup,omitempty"`
 	ExternalURL  string `json:"externalUrl,omitempty"`
-	LastHealthy  string `json:"lastHealthy,omitempty"`
 }
 
 // BackendState represents the state of a backend
 type BackendState struct {
-	Name         string    `json:"name"`
-	Active       bool      `json:"active"`
-	Healthy      bool      `json:"healthy"`
-	LastHealthy  time.Time `json:"lastHealthy,omitempty"`
-	RoutingGroup string    `json:"routingGroup,omitempty"`
+	Name         string `json:"name"`
+	Active       bool   `json:"active"`
+	Healthy      bool   `json:"healthy"`
+	RoutingGroup string `json:"routingGroup,omitempty"`
 }
 
 // QueryHistory represents a query in the history
