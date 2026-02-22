@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -44,7 +47,7 @@ resource "trinogateway_backend" "this" {
   name          = "%s"
   routing_group = "%s"
   proxy_to      = "%s"
-  active        = "%v"
+  active        = %v
   external_url  = "%s"
 }
 

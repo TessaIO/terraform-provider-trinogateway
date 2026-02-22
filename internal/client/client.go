@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package client
 
 import (
@@ -12,35 +15,42 @@ import (
 	"time"
 )
 
-// Client represents a Trino Gateway client
+// Client represents a Trino Gateway client.
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
 	auth       *AuthConfig
 }
 
-// AuthConfig holds authentication configuration
+// AuthConfig holds authentication configuration.
 type AuthConfig struct {
 	Username string
 	Password string
 }
 
-// Option is a functional option for configuring the Client
+// Option is a functional option for configuring the Client.
 type Option func(*Client)
 
-// NewClient creates a new Trino Gateway client
+// NewClient creates a new Trino Gateway client.
 func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	if baseURL == "" {
 		return nil, fmt.Errorf("baseURL cannot be empty")
 	}
 
 	// Validate URL
-	if _, err := url.Parse(baseURL); err != nil {
+	u, err := url.Parse(baseURL)
+	if err != nil {
 		return nil, fmt.Errorf("invalid baseURL: %w", err)
 	}
 
+	if u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("invalid baseURL: must include scheme and host")
+	}
+
+	normalizedBaseURL := strings.TrimRight(u.String(), "/")
+
 	client := &Client{
-		baseURL: baseURL,
+		baseURL: normalizedBaseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -54,7 +64,7 @@ func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	return client, nil
 }
 
-// WithAuth sets basic authentication credentials
+// WithAuth sets basic authentication credentials.
 func WithAuth(username, password string) Option {
 	return func(c *Client) {
 		c.auth = &AuthConfig{
@@ -64,21 +74,21 @@ func WithAuth(username, password string) Option {
 	}
 }
 
-// WithHTTPClient sets a custom HTTP client
+// WithHTTPClient sets a custom HTTP client.
 func WithHTTPClient(httpClient *http.Client) Option {
 	return func(c *Client) {
 		c.httpClient = httpClient
 	}
 }
 
-// WithTimeout sets the HTTP client timeout
+// WithTimeout sets the HTTP client timeout.
 func WithTimeout(timeout time.Duration) Option {
 	return func(c *Client) {
 		c.httpClient.Timeout = timeout
 	}
 }
 
-// doRequest performs an HTTP request with optional authentication
+// doRequest performs an HTTP request with optional authentication.
 func (c *Client) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	// Build full URL
 	fullURL := c.baseURL + path
@@ -133,32 +143,32 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	return resp, nil
 }
 
-// Get performs a GET request
+// Get performs a GET request.
 func (c *Client) Get(ctx context.Context, path string) (*http.Response, error) {
 	return c.doRequest(ctx, http.MethodGet, path, nil)
 }
 
-// Post performs a POST request
+// Post performs a POST request.
 func (c *Client) Post(ctx context.Context, path string, body any) (*http.Response, error) {
 	return c.doRequest(ctx, http.MethodPost, path, body)
 }
 
-// Put performs a PUT request
+// Put performs a PUT request.
 func (c *Client) Put(ctx context.Context, path string, body any) (*http.Response, error) {
 	return c.doRequest(ctx, http.MethodPut, path, body)
 }
 
-// Delete performs a DELETE request
+// Delete performs a DELETE request.
 func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error) {
 	return c.doRequest(ctx, http.MethodDelete, path, nil)
 }
 
-// Patch performs a PATCH request
+// Patch performs a PATCH request.
 func (c *Client) Patch(ctx context.Context, path string, body any) (*http.Response, error) {
 	return c.doRequest(ctx, http.MethodPatch, path, body)
 }
 
-// DecodeResponse decodes a JSON response into the provided interface
+// DecodeResponse decodes a JSON response into the provided interface.
 func DecodeResponse(resp *http.Response, v any) error {
 	defer resp.Body.Close()
 
@@ -169,13 +179,14 @@ func DecodeResponse(resp *http.Response, v any) error {
 	return nil
 }
 
-// HTTPError represents an HTTP error response
+// HTTPError represents an HTTP error response.
 type HTTPError struct {
 	StatusCode int
 	Status     string
 	Body       string
 }
 
+// Error returns a formatted error out of the HTTP error.
 func (e *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP %d: %s - %s", e.StatusCode, e.Status, e.Body)
 }

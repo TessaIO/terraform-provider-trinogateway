@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package trinogateway
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,33 +35,54 @@ func TestBackendService(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == "GET" && r.URL.Path == "/entity/GATEWAY_BACKEND":
-			json.NewEncoder(w).Encode(mockBackends)
+			if err := json.NewEncoder(w).Encode(mockBackends); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 
 		case r.Method == "GET" && r.URL.Path == "/entity/GATEWAY_BACKEND/backend1":
-			json.NewEncoder(w).Encode(mockBackends[0])
+			if err := json.NewEncoder(w).Encode(mockBackends[0]); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 
 		case r.Method == "GET" && r.URL.Path == "/api/public/backends/backend1":
-			json.NewEncoder(w).Encode(mockBackends[0])
+			if err := json.NewEncoder(w).Encode(mockBackends[0]); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 
 		case r.Method == "POST" && r.URL.Path == "/entity":
 			var req CreateBackendRequest
-			json.NewDecoder(r.Body).Decode(&req)
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				fmt.Println("error while decoding response")
+				return
+			}
 			backend := Backend{
 				Name:         req.Name,
 				ProxyTo:      req.ProxyTo,
 				Active:       req.Active,
 				RoutingGroup: req.RoutingGroup,
 			}
-			json.NewEncoder(w).Encode(backend)
+			if err := json.NewEncoder(w).Encode(backend); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 
 		case r.Method == "PUT" && r.URL.Path == "/entity/GATEWAY_BACKEND/backend1":
 			var req UpdateBackendRequest
-			json.NewDecoder(r.Body).Decode(&req)
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				fmt.Println("error while decoding response")
+				return
+			}
 			backend := mockBackends[0]
 			if req.Active != nil {
 				backend.Active = *req.Active
 			}
-			json.NewEncoder(w).Encode(backend)
+			if err := json.NewEncoder(w).Encode(backend); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 
 		case r.Method == "POST" && r.URL.Path == "/gateway/backend/modify/delete":
 			w.WriteHeader(http.StatusNoContent)
@@ -67,7 +92,10 @@ func TestBackendService(t *testing.T) {
 				{Name: "backend1", Active: true, Healthy: true},
 				{Name: "backend2", Active: false, Healthy: false},
 			}
-			json.NewEncoder(w).Encode(states)
+			if err := json.NewEncoder(w).Encode(states); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 
 		default:
 			w.WriteHeader(http.StatusNotFound)

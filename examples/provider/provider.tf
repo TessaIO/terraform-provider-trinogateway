@@ -1,3 +1,5 @@
-provider "scaffolding" {
-  # example configuration here
+provider "trinogateway" {
+  endpoint = "http://localhost:8080"
+  username = "admin"
+  password = "admin"
 }

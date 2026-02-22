@@ -44,19 +44,24 @@ func (p *TrinoGatewayProvider) Metadata(ctx context.Context, req provider.Metada
 
 func (p *TrinoGatewayProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "Trino Gateway provider to interact with the Trino Gateway API.",
+		MarkdownDescription: "Trino Gateway provider to interact with the Trino Gateway API.",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "Endpoint of the Trino gateway",
+				Description:         "Endpoint of the Trino gateway",
 				Required:            true,
 			},
 			"username": schema.StringAttribute{
-				MarkdownDescription: "username to access Trino gateway",
-				Optional:            true,
+				MarkdownDescription: "Username to access Trino gateway",
+				Description:         "Username to access Trino gateway",
+				Required:            true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "password to access Trino gateway",
-				Optional:            true,
+				MarkdownDescription: "Password to access Trino gateway",
+				Description:         "Password to access Trino gateway",
 				Sensitive:           true,
+				Required:            true,
 			},
 		},
 	}
@@ -128,7 +133,7 @@ func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.Confi
 			path.Root("endpoint"),
 			"Missing Trino Gateway API Host",
 			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API endpoint. "+
-				"Set the host value in the configuration or use the TRINOGATEWAY_HOST environment variable. "+
+				"Set the host value in the configuration or use the TRINOGATEWAY_ENDPOINT environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}

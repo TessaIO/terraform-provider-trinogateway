@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -14,7 +17,6 @@ import (
 
 var (
 	_ datasource.DataSource              = &backendDataSource{}
-	_ datasource.DataSourceWithConfigure = &backendDataSource{}
 	_ datasource.DataSourceWithConfigure = &backendDataSource{}
 )
 
@@ -46,25 +48,39 @@ func (d *backendDataSource) Metadata(_ context.Context, req datasource.MetadataR
 
 func (d *backendDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "List of Trino backends.",
+		MarkdownDescription: "List of Trino backends.",
 		Attributes: map[string]schema.Attribute{
 			"clusters": schema.ListNestedAttribute{
-				Computed: true,
+				Description:         "List of Trino backends.",
+				MarkdownDescription: "List of Trino backends.",
+				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
-							Computed: true,
+							Description:         "The name of the backend.",
+							MarkdownDescription: "The name of the backend.",
+							Computed:            true,
 						},
 						"proxy_to": schema.StringAttribute{
-							Computed: true,
+							Description:         "The proxy URL for the backend.",
+							MarkdownDescription: "The proxy URL for the backend.",
+							Computed:            true,
 						},
 						"active": schema.BoolAttribute{
-							Computed: true,
+							Description:         "Whether the backend is active.",
+							MarkdownDescription: "Whether the backend is active.",
+							Computed:            true,
 						},
 						"routing_group": schema.StringAttribute{
-							Computed: true,
+							Description:         "The routing group for the backend.",
+							MarkdownDescription: "The routing group for the backend.",
+							Computed:            true,
 						},
 						"external_url": schema.StringAttribute{
-							Computed: true,
+							Description:         "The external URL for the backend.",
+							MarkdownDescription: "The external URL for the backend.",
+							Computed:            true,
 						},
 					},
 				},
@@ -96,6 +112,7 @@ func (d *backendDataSource) Configure(ctx context.Context, req datasource.Config
 	tflog.Debug(ctx, "Assigned TrinoGateway Client to the datasource", map[string]any{"success": true})
 }
 
+// Read reads the provided configuration and returns a response that contains the list of backends.
 func (d *backendDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state backendDataSourceModel
 

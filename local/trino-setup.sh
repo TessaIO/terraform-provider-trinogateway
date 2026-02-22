@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 VERSION=17
 BASE_URL="https://repo1.maven.org/maven2/io/trino/gateway/gateway-ha"

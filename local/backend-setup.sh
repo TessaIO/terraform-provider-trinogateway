@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 TRINO_IMAGE="trinodb/trino"
 JAVA_OPTS="-Dhttp-server.process-forwarded=true"

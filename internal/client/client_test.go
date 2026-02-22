@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package client
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -111,13 +115,22 @@ func TestClientRequests(t *testing.T) {
 		switch r.URL.Path {
 		case "/test":
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"message": "success"})
+			if err := json.NewEncoder(w).Encode(map[string]string{"message": "success"}); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 		case "/error":
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("not found"))
+			if _, err := w.Write([]byte("not found")); err != nil {
+				fmt.Println("error while writing header")
+				return
+			}
 		default:
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"path": r.URL.Path})
+			if err := json.NewEncoder(w).Encode(map[string]string{"path": r.URL.Path}); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 		}
 	}))
 	defer server.Close()
@@ -203,7 +216,10 @@ func TestHTTPError(t *testing.T) {
 func TestDecodeResponse(t *testing.T) {
 	t.Run("valid JSON", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(map[string]string{"name": "test"})
+			if err := json.NewEncoder(w).Encode(map[string]string{"name": "test"}); err != nil {
+				fmt.Println("error while encoding response")
+				return
+			}
 		}))
 		defer server.Close()
 
@@ -222,7 +238,10 @@ func TestDecodeResponse(t *testing.T) {
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("invalid json"))
+			if _, err := w.Write([]byte("invalid json")); err != nil {
+				fmt.Println("error while writing response")
+				return
+			}
 		}))
 		defer server.Close()
 
