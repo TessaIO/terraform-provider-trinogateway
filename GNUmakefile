@@ -21,4 +21,10 @@ test:
 testacc:
 	TF_ACC=1 go test -v -cover -timeout 120m ./...
 
+setup-local:
+	cd local && ./trino-setup.sh && ./backend-setup.sh && cd -
+
+clean-local:
+	./local/clean.sh
+
 .PHONY: fmt lint test testacc build install generate

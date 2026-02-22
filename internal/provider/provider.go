@@ -5,104 +5,205 @@ package provider
 
 import (
 	"context"
-	"net/http"
+	"os"
 
-	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
-	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
+	"github.com/TessaIO/terraform-provider-trinogateway/internal/client"
+	"github.com/TessaIO/terraform-provider-trinogateway/internal/trinogateway"
 )
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaffoldingProvider{}
-var _ provider.ProviderWithFunctions = &ScaffoldingProvider{}
-var _ provider.ProviderWithEphemeralResources = &ScaffoldingProvider{}
-var _ provider.ProviderWithActions = &ScaffoldingProvider{}
+var _ provider.Provider = &TrinoGatewayProvider{}
 
-// ScaffoldingProvider defines the provider implementation.
-type ScaffoldingProvider struct {
+// TrinoGatewayProvider defines the provider implementation.
+type TrinoGatewayProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type ScaffoldingProviderModel struct {
+// TrinoGatewayProviderModel describes the provider data model.
+type TrinoGatewayProviderModel struct {
 	Endpoint types.String `tfsdk:"endpoint"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
 }
 
-func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+func (p *TrinoGatewayProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "trinogateway"
 	resp.Version = p.version
 }
 
-func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *TrinoGatewayProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "Trino Gateway provider to interact with the Trino Gateway API.",
+		MarkdownDescription: "Trino Gateway provider to interact with the Trino Gateway API.",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
-				Optional:            true,
+				MarkdownDescription: "Endpoint of the Trino gateway",
+				Description:         "Endpoint of the Trino gateway",
+				Required:            true,
+			},
+			"username": schema.StringAttribute{
+				MarkdownDescription: "Username to access Trino gateway",
+				Description:         "Username to access Trino gateway",
+				Required:            true,
+			},
+			"password": schema.StringAttribute{
+				MarkdownDescription: "Password to access Trino gateway",
+				Description:         "Password to access Trino gateway",
+				Sensitive:           true,
+				Required:            true,
 			},
 		},
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+func (p *TrinoGatewayProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	tflog.Info(ctx, "Configuring Trino-Gateway client")
+	var config TrinoGatewayProviderModel
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	if config.Endpoint.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("endpoint"),
+			"Unknown Trino Gateway API Endpoint",
+			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway endpoint. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINOGATEWAY_ENDPOINT environment variable.",
+		)
+	}
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	if config.Username.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Unknown Trino Gateway API Username",
+			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway username. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINOGATEWAY_USERNAME environment variable.",
+		)
+	}
+
+	if config.Password.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Unknown Trino Gateway API Password",
+			"The provider cannot create the Trino-Gateway API client as there is an unknown configuration value for the Trino Gateway password. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the TRINOGATEWAY_PASSWORD environment variable.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Default values to environment variables, but override
+	// with Terraform configuration value if set.
+	endpoint := os.Getenv("TRINOGATEWAY_ENDPOINT")
+	username := os.Getenv("TRINOGATEWAY_USERNAME")
+	password := os.Getenv("TRINOGATEWAY_PASSWORD")
+
+	if !config.Endpoint.IsNull() {
+		endpoint = config.Endpoint.ValueString()
+	}
+
+	if !config.Username.IsNull() {
+		username = config.Username.ValueString()
+	}
+
+	if !config.Password.IsNull() {
+		password = config.Password.ValueString()
+	}
+
+	// If any of the expected configurations are missing, return
+	// errors with provider-specific guidance.
+	if endpoint == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("endpoint"),
+			"Missing Trino Gateway API Host",
+			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API endpoint. "+
+				"Set the host value in the configuration or use the TRINOGATEWAY_ENDPOINT environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if username == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Missing Trino Gateway API Username",
+			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API username. "+
+				"Set the username value in the configuration or use the TRINOGATEWAY_USERNAME environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if password == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Missing Trino Gateway API Password",
+			"The provider cannot create the Trino Gateway API client as there is a missing or empty value for the Trino Gateway API password. "+
+				"Set the password value in the configuration or use the TRINOGATEWAY_PASSWORD environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx = tflog.SetField(ctx, "trinogateway_endpoint", endpoint)
+	ctx = tflog.SetField(ctx, "trinogateway_username", username)
+	ctx = tflog.SetField(ctx, "trinogateway_password", password)
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "trinogateway_password")
+
+	tflog.Debug(ctx, "Creating trinogateway client")
+
+	httpClient, err := client.NewClient(endpoint, client.WithAuth(username, password))
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to create HTTP Client",
+			"An unexpected error occurred when creating the HTTP client. "+
+				"If the error is not clear, please contact the provider developers.\n\n"+
+				"HTTP Client Error: "+err.Error(),
+		)
+
+		return
+	}
+
+	trinoGatewayService := trinogateway.NewTrinoGatewayService(httpClient)
+	resp.ResourceData = trinoGatewayService
+	resp.DataSourceData = trinoGatewayService
+
+	tflog.Info(ctx, "Configured Trino-gateway client", map[string]any{"success": true})
 }
 
-func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *TrinoGatewayProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		NewBackendResource,
 	}
 }
 
-func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
-	}
-}
-
-func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *TrinoGatewayProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
+		NewBackendDataSource,
 	}
 }
 
-func (p *ScaffoldingProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
-}
-
-func (p *ScaffoldingProvider) Actions(ctx context.Context) []func() action.Action {
-	return []func() action.Action{
-		NewExampleAction,
-	}
-}
-
+// New is a helper function to simplify provider server and testing implementation.
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &ScaffoldingProvider{
+		return &TrinoGatewayProvider{
 			version: version,
 		}
 	}

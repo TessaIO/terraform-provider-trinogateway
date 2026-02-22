@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module github.com/TessaIO/terraform-provider-trinogateway
 
 go 1.25.5
 
