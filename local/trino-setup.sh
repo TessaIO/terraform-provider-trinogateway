@@ -37,4 +37,4 @@ start_postgres_db
 # Start Trino Gateway server
 echo "Starting Trino Gateway server..."
 java --version
-java -Xmx1g -jar ./$GATEWAY_JAR ./$CONFIG_YAML
+java -Xmx1g -jar ./$GATEWAY_JAR ./$CONFIG_YAML &
