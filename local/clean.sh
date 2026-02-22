@@ -2,6 +2,5 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-
-docker kill trino1 && docker rm trino1
-docker kill trino2 && docker rm trino2
+# Just a placeholder for future cases
+echo "tearing down the env"
