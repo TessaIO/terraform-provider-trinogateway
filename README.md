@@ -17,7 +17,7 @@ Here is a complete example of how to configure the provider and manage a Trino G
 terraform {
   required_providers {
     trinogateway = {
-      source  = "TessaIO/trinogateway"
+      source  = "tessaio/trinogateway"
       version = "0.1.0"
     }
   }

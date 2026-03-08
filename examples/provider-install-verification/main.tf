@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     trinogateway = {
-      source  = "trinogateway"
-      version = "1.0.0"
+      source  = "tessaio/trinogateway"
+      version = "0.1.0"
     }
   }
 }
